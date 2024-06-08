@@ -1,9 +1,9 @@
-import json
 from openai import OpenAI
 import os
 from pydub import AudioSegment
 import datetime
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,6 +22,13 @@ def _parse_timestamp(filename) -> float | None:
 
 
 def merge_audio_files(directory='audio_output') -> None:
+    while True:
+        files = os.listdir(directory)
+        if all(f.endswith('.mp3') for f in files):
+            break
+        else:
+            print("Not all files are in .mp3 format. Waiting for 2 seconds before checking again...")
+            time.sleep(2)
     try:
         audio_files = [f for f in os.listdir(directory) if f.endswith('.mp3')]
         if not audio_files:
@@ -122,12 +129,37 @@ def transcript_conversation() -> str:
 
 
 def summarize_conversation() -> str:
-    pass
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": """
+            The following is a conversation between a group of people. I want you to summarize the conversation. Before
+            each segment of speech, there is a series of numbers corresponding to the time stamp of when it was spoken.
+            It is formatted as follows: YYYYMMDDHHMMSS.
+            """},
+            {"role": "user", "content": "The conversation you are to summarize is as follows:" +
+             transcript_conversation()}
+        ]
+    )
+
+    return response.choices[0].message.content
+
+def remove_exiting_files():
+    for file in os.listdir("audio_output"):
+        os.remove(os.path.join("audio_output", file))
+
+    for file in os.listdir("merged_audios"):
+        os.remove(os.path.join("merged_audios", file))
 
 
-if __name__ == '__main__':
-    print(transcript_conversation())
-    # merge_audio_files()
+def run_ai() -> str:
+    merge_audio_files()
+    return summarize_conversation()
+
+
+# if __name__ == '__main__':
+#     merge_audio_files()
+#     print(summarize_conversation())
 
 # todo: make it so each user's audio is separated into different files, generate transcription separately,
 #  use timestamps to combine, then summarize the conversation.

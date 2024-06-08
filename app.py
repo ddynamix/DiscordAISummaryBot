@@ -9,6 +9,8 @@ import discord
 from discord import app_commands
 from discord.ext import listening
 
+import AIHandler
+
 
 class Client(discord.Client):
     GUILD = discord.Object(id=1072655860842647573)
@@ -88,8 +90,10 @@ async def on_listen_finish(sink: listening.AudioFileSink, exc=None, channel=None
     # here, the stdout and stderr kwargs go to asyncio.create_subprocess_exec for ffmpeg
     await sink.convert_files(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if channel is not None:
-        for file in sink.output_files.values():
-            await send_audio_file(channel, file)
+        # for file in sink.output_files.values():
+        #     await send_audio_file(channel, file)
+        await channel.send("Here is a summary of your previous converstaion: " + AIHandler.run_ai())
+        AIHandler.remove_exiting_files()
 
     # insert AI processing here
 
